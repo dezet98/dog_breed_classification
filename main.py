@@ -9,6 +9,7 @@ import tensorflow as tf
 from models.mobile_net_v2 import MobileNetV2
 from models.res_net_50_v2 import ResNet50V2
 from tuner import Tuner
+import numpy as np
 
 
 def simple_cnn(loader):
@@ -67,6 +68,27 @@ def predict_best(model, loader, model_name):
     print('Test accuracy: %.4f%%' % (accuracy * 100))
 
 
+def predict_custom(model, loader):
+    # get index of predicted dog breed for each image in test set
+    predictions = [np.argmax(model.predict(np.expand_dims(feature, axis=0))) for feature in loader.test_x]
+
+    # report test accuracy
+    test_accuracy = 100 * np.sum(np.array(predictions) == np.argmax(loader.test_y, axis=1)) / len(
+        predictions)
+
+    results = []
+    for i, j in zip(np.array(predictions), np.argmax(loader.test_y, axis=1)):
+        predicted_name = loader.rev_breed_ids[i]
+        actual_breed = loader.rev_breed_ids[j]
+        result = predicted_name + " | " + actual_breed + (
+            ' | True' if predicted_name == actual_breed else ' | False ') + str(i) + " " + str(j)
+        results.append(result)
+    results.sort()
+    print(results)
+
+    print('Test accuracy: %.4f%%' % test_accuracy)
+
+
 def save_as_tf_lite(h5_model, model_name):
     converter = tf.lite.TFLiteConverter.from_keras_model(h5_model)
     tf_lite_model = converter.convert()
@@ -75,7 +97,7 @@ def save_as_tf_lite(h5_model, model_name):
 
 if __name__ == '__main__':
     # load, prepare and split data
-    # data_loader = BreedsLoader(verbose=1)
+    data_loader = BreedsLoader(verbose=1)
     # BreedsLoader.split_into_folders()
 
     # simple_cnn(data_loader)
@@ -84,8 +106,11 @@ if __name__ == '__main__':
     # mobile_net_v2(data_loader)
     # mobile_net_v2_data_augmentation()
     # predict_best(MobileNetV2.load_saved_model(), data_loader, MobileNetV2.model_name)
-    save_as_tf_lite(MobileNetV2.load_saved_model(), MobileNetV2.model_name)
+    # save_as_tf_lite(MobileNetV2.load_saved_model(), MobileNetV2.model_name)
     # tune_mobile_net_v2(data_loader)
+    predict_custom(MobileNetV2.load_saved_model(), data_loader)
+    # Predictor.predict("data/custom/x.jpg", MobileNetV2.load_saved_model(), data_loader.rev_breed_ids,
+    #                   'x_' + MobileNetV2.model_name)
 
     # res_net_50_v2(data_loader)
     # predict_best(ResNet50V2.load_saved_model(), data_loader, ResNet50V2.model_name)

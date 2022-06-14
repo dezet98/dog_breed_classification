@@ -16,6 +16,7 @@ class BreedsLoader:
 
         # extract unique breeds
         self.breeds = self.__df["breed"].unique()
+        self.breeds = sorted(self.breeds)
         # number of breads
         self.num_breeds = len(self.breeds)
         self.show_number_of_breeds(verbose)
@@ -41,13 +42,13 @@ class BreedsLoader:
             labels.append(breed_id)
             images_paths.append(self.train_path + image_id + ".jpg")
 
-        self.__images_paths = images_paths[:1000]
-        self.__labels = labels[:1000]
+        self.images_paths = images_paths[:1000]
+        self.labels = labels[:1000]
 
     # hot encoding for labels, load images and turn them into vector
     def __prepare_data(self):
-        self.y = Encoding.encode(self.__labels, self.num_breeds)
-        self.x = ImageLoader.load_images(self.__images_paths, self.img_size)
+        self.y = Encoding.encode(self.labels, self.num_breeds)
+        self.x = ImageLoader.load_images(self.images_paths, self.img_size)
 
     def __split_data(self, verbose=1):
         # split data (ratio 80:20)
@@ -96,8 +97,8 @@ class BreedsLoader:
 
     def show_dog_breed_id(self, index, verbose=1):
         if verbose != 0:
-            if index < len(self.__images_paths):
-                print("For", index, "image id:", self.__images_paths[index], "breed index:", self.__labels[index])
+            if index < len(self.images_paths):
+                print("For", index, "image id:", self.images_paths[index], "breed index:", self.labels[index])
 
     def show_split_data(self, verbose=1):
         if verbose != 0:
