@@ -16,7 +16,7 @@ class ResNet50V2:
             tf.keras.callbacks.ModelCheckpoint(self.model_save_path, verbose=1, save_best_only=True),
         ]
 
-        epochs = 20
+        epochs = 30
         batch_size = 16
 
         return self.model.fit(x, y,

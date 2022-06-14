@@ -1,7 +1,10 @@
+import os
+
 import pandas as pd
 from helpers.encoding import Encoding
 from helpers.image_loader import ImageLoader
 from sklearn.model_selection import train_test_split
+import shutil
 
 
 class BreedsLoader:
@@ -26,16 +29,17 @@ class BreedsLoader:
         self.__prepare_data()
         self.__split_data(verbose)
 
+    sorted_folder_path = r"data/sorted"
+    train_path = r"data/train/"
+
     # link images with breeds (create array of images paths and breeds index)
     def __fetch_and_link_data(self):
-        train_path = r"data/train/"
-
         images_paths = []
         labels = []
         for image_id, breed_name in zip(self.__df["id"], self.__df["breed"]):
             breed_id = self.breed_ids[breed_name]
             labels.append(breed_id)
-            images_paths.append(train_path + image_id + ".jpg")
+            images_paths.append(self.train_path + image_id + ".jpg")
 
         self.__images_paths = images_paths[:1000]
         self.__labels = labels[:1000]
@@ -51,6 +55,26 @@ class BreedsLoader:
                                                                                 random_state=42)
         self.validation_data = (self.test_x, self.test_y)
         self.show_split_data(verbose)
+
+    @staticmethod
+    def split_into_folders():
+        print("Starting...")
+        df = pd.read_csv('data/labels.csv')
+        breeds = df["breed"].unique()
+        # create breeds folders
+        for breed_name in breeds:
+            dir_name = BreedsLoader.sorted_folder_path + "/" + breed_name
+            if not os.path.exists(BreedsLoader.sorted_folder_path + "/" + breed_name):
+                os.mkdir(dir_name)
+                print("Directory ", dir_name, " Created ")
+
+        # move images into created folders
+        for image_id, breed_name in zip(df["id"], df["breed"]):
+            img_name = image_id + ".jpg"
+            original_path = BreedsLoader.train_path + img_name
+            target_path = BreedsLoader.sorted_folder_path + "/" + breed_name + "/" + img_name
+            shutil.copyfile(original_path, target_path)
+        print("End...")
 
     # display methods
     def show_head(self, verbose=1):

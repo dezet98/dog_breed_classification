@@ -10,12 +10,13 @@ class MobileNetV2:
 
     def fit(self, x, y, validation_data):
         callbacks = [
-            tf.keras.callbacks.EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=5),
+            tf.keras.callbacks.EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=8),
             # save the Keras model or model weights at some frequency.
             tf.keras.callbacks.ModelCheckpoint(self.model_save_path, verbose=1, save_best_only=True),
+            tf.keras.callbacks.ReduceLROnPlateau(factor=0.1, patience=3, min_lr=0.000001)
         ]
 
-        epochs = 2
+        epochs = 30
         batch_size = 16
 
         return self.model.fit(x, y,
@@ -25,6 +26,30 @@ class MobileNetV2:
                               callbacks=callbacks,
                               verbose=1
                               )
+
+    def fit_using_generator(self, train_generator, test_generator):
+        callbacks = [
+            tf.keras.callbacks.EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=8),
+            # save the Keras model or model weights at some frequency.
+            tf.keras.callbacks.ModelCheckpoint(self.model_save_path, verbose=1, save_best_only=True),
+            tf.keras.callbacks.ReduceLROnPlateau(factor=0.1, patience=3, min_lr=0.000001)
+        ]
+
+        epochs = 30
+        batch_size = 16
+
+        return self.model.fit(train_generator,
+                              validation_data=test_generator,
+                              batch_size=batch_size,
+                              epochs=epochs,
+                              callbacks=callbacks,
+                              verbose=1
+                              )
+
+    def evaluate_using_generator(self, val_generator, x):
+        loss, accuracy = self.model.evaluate(val_generator, x)
+        print('------------------->', self.model_name, 'results: ', 'loss:', loss, 'accuracy:', accuracy,
+              '<-------------------')
 
     def evaluate(self, test_x, test_y):
         loss, accuracy = self.model.evaluate(test_x, test_y)
@@ -39,7 +64,7 @@ class MobileNetV2:
         self.model.summary()
 
     @staticmethod
-    def build_cnn_model(size, num_classes):
+    def build_cnn_model(size, num_classes, learning_rate=0.001, neurons=1024, activation='relu'):
         # shape of image
         inputs = tf.keras.Input((size, size, 3))
 
@@ -57,15 +82,15 @@ class MobileNetV2:
         x = tf.keras.layers.GlobalAveragePooling2D()(x)
         x = tf.keras.layers.Dropout(0.2)(x)
         # add fully connected layer
-        x = tf.keras.layers.Dense(1024, activation="relu")(x)
+        x = tf.keras.layers.Dense(neurons, activation=activation)(x)
         # and output layer
         x = tf.keras.layers.Dense(num_classes, activation="softmax")(x)
 
         model = tf.keras.Model(inputs, x)
 
         # compile model
-        alpha = 0.0001
-        model.compile(loss="categorical_crossentropy", optimizer=tf.keras.optimizers.Adam(alpha),
+        optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+        model.compile(loss="categorical_crossentropy", optimizer=optimizer,
                       metrics=["acc"])
 
         return model
